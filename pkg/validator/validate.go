@@ -34,6 +34,9 @@ func ValidateEnvars(logger *simple.Logger) error {
 		"NAME,true",
 		"KAFKA_BROKERS,true",
 		"TOPIC,true",
+		"REDIS_HOST,true",
+		"REDIS_PASSWORD,true",
+		"SERVER_PORT,true",
 	}
 	for x := range items {
 		if err := checkEnvar(items[x], logger); err != nil {

@@ -1,8 +1,6 @@
 package connectors
 
-import (
-	gocb "github.com/couchbase/gocb/v2"
-)
+import "time"
 
 // Clients interface - the NewClientConnectors will return this struct
 type Clients interface {
@@ -10,7 +8,8 @@ type Clients interface {
 	Info(string, ...interface{})
 	Debug(string, ...interface{})
 	Trace(string, ...interface{})
-	Upsert(col string, value interface{}, opts *gocb.UpsertOptions) (*gocb.MutationResult, error)
+	Get(string) (string, error)
+	Set(string, string, time.Duration) (string, error)
 	KafkaConsumer() *KafkaConsumerWrapper
 	Close()
 }

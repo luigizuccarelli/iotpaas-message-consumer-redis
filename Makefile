@@ -8,7 +8,7 @@ AUTH ?= "--authfile=~/.docker/podman.json"
 
 REGISTRY ?= quay.io/luigizuccarelli
 
-PROJECT ?= iotpaas-message-consumer
+PROJECT ?= iotpaas-message-consumer-redis
 
 all: clean verify test build container push
 

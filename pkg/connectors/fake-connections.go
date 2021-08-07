@@ -6,21 +6,26 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	gocb "github.com/couchbase/gocb/v2"
 	"github.com/microlib/simple"
 )
 
+var (
+	// create a key value map (to fake redis)
+	store map[string]string
+)
+
 type Connectors struct {
-	Bucket *FakeCouchbase
+	Redis  *FakeRedis
 	Logger *simple.Logger
 	Kafka  *KafkaConsumerWrapper
 	Flag   string
 	Name   string
 }
 
-type FakeCouchbase struct {
+type FakeRedis struct {
 }
 
 type FakeKafkaConsumer struct {
@@ -48,20 +53,24 @@ func (r *Connectors) Trace(msg string, val ...interface{}) {
 	r.Logger.Trace(fmt.Sprintf(msg, val...))
 }
 
-// Upsert : wrapper function for couchbase update
-func (r *Connectors) Upsert(col string, value interface{}, opts *gocb.UpsertOptions) (*gocb.MutationResult, error) {
+func (r *Connectors) Get(key string) (string, error) {
+	return store[key], nil
+}
+
+func (r *Connectors) Set(key string, value string, expr time.Duration) (string, error) {
 	if r.Flag == "errorDB" {
-		return &gocb.MutationResult{}, errors.New("forced upsert error")
+		return "", errors.New("forced redis db error")
 	}
-	return &gocb.MutationResult{}, nil
+	store[key] = value
+	return value, nil
+}
+
+func (r *Connectors) Close() {
+	store = nil
 }
 
 func (c *Connectors) KafkaConsumer() *KafkaConsumerWrapper {
 	return c.Kafka
-}
-
-func (c *Connectors) Close() {
-	// do nothing
 }
 
 func (f *FakeKafkaConsumer) Close() {
@@ -78,16 +87,8 @@ func (f *FakeKafkaConsumer) ReadMessage(int) (*kafka.Message, error) {
 
 // NewTestClientConnectors - inject our test connectors
 func NewTestClientConnectors(filename string, err string, logger *simple.Logger) Clients {
-
-	// we first load the json payload to simulate response data
-	// for now just ignore failures.
-
-	// reference our fake consumer
-	fc := &FakeKafkaConsumer{Flag: err, File: filename}
-	cw := &KafkaConsumerWrapper{Consumer: fc}
-	// we use this flag to inject/force errors
-	//if err != "error" {
-
-	conn := &Connectors{Kafka: cw, Bucket: &FakeCouchbase{}, Logger: logger, Name: "test", Flag: err}
+	store = map[string]string{"": ""}
+	cw := &KafkaConsumerWrapper{Consumer: &FakeKafkaConsumer{File: filename, Flag: err}}
+	conn := &Connectors{Kafka: cw, Redis: &FakeRedis{}, Logger: logger, Name: "test", Flag: err}
 	return conn
 }

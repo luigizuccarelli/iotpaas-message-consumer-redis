@@ -55,9 +55,9 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">gitea-devops-shared-threefld-cicd.apps.c4.us-east-1.dev.aws.ocp.14west.io/cicd/trackmate-message-consumer/pkg/handlers/consumer.go (93.8%)</option>
+				<option value="file0">github.com/luigizuccarelli/iotpaas-message-consumer-redis/pkg/handlers/consumer.go (93.3%)</option>
 				
-				<option value="file1">gitea-devops-shared-threefld-cicd.apps.c4.us-east-1.dev.aws.ocp.14west.io/cicd/trackmate-message-consumer/pkg/validator/validate.go (100.0%)</option>
+				<option value="file1">github.com/luigizuccarelli/iotpaas-message-consumer-redis/pkg/validator/validate.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -76,14 +76,12 @@
 import (
         "encoding/json"
         "fmt"
-        "net/url"
         "os"
         "strconv"
 
-        "gitea-devops-shared-threefld-cicd.apps.c4.us-east-1.dev.aws.ocp.14west.io/cicd/trackmate-message-consumer/pkg/connectors"
-        "gitea-devops-shared-threefld-cicd.apps.c4.us-east-1.dev.aws.ocp.14west.io/cicd/trackmate-message-consumer/pkg/schema"
         "github.com/confluentinc/confluent-kafka-go/kafka"
-        gocb "github.com/couchbase/gocb/v2"
+        "github.com/luigizuccarelli/iotpaas-message-consumer-redis/pkg/connectors"
+        "github.com/luigizuccarelli/iotpaas-message-consumer-redis/pkg/schema"
 )
 
 // Init : public function that connects to the kafka queue and redis cache
@@ -115,30 +113,28 @@ func Init(conn connectors.Clients) error <span class="cov8" title="1">{
 // postToDB : private utility function that posts the json payload to couchbase
 func postToDB(conn connectors.Clients, msg *kafka.Message) error <span class="cov8" title="1">{
 
-        var analytics *schema.Trackmate
+        var data *schema.IOTPaaS
 
         // check if we have the updated detached json
         if msg != nil </span><span class="cov8" title="1">{
-                payload, _ := url.PathUnescape(string(msg.Value))
-                conn.Trace(fmt.Sprintf("Data from message queue %s", payload))
+                //payload, _ := url.PathUnescape(string(msg.Value))
+                conn.Trace(fmt.Sprintf("Data from message queue %s", string(msg.Value)))
 
-                // we have the new format
-                errs := json.Unmarshal(msg.Value, &amp;analytics)
+                errs := json.Unmarshal(msg.Value, &amp;data)
                 if errs != nil </span><span class="cov8" title="1">{
-                        conn.Error("postToDB unmarshalling new format %v", errs)
+                        conn.Error("postToDB unmarshalling format %v", errs)
                         return errs
                 }</span>
 
-                <span class="cov8" title="1">conn.Debug(fmt.Sprintf("Analytics struct  %v", analytics))
-                res, err := conn.Upsert(analytics.MessageId, analytics, &amp;gocb.UpsertOptions{})
-                conn.Debug(fmt.Sprintf("Result from insert %v", res))
+                <span class="cov8" title="1">res, err := conn.Set(data.Id, string(msg.Value), -1)
+                conn.Debug(fmt.Sprintf("IOTPaaS from inser into redis %v", res))
                 if err != nil </span><span class="cov8" title="1">{
-                        conn.Error(fmt.Sprintf("Could not insert schema into couchbase %v", err))
+                        conn.Error(fmt.Sprintf("Could not insert schema into redis %v", err))
                         return err
                 }</span>
 
                 // all good :)
-                <span class="cov8" title="1">conn.Info("Analytics schema inserted into couchbase")
+                <span class="cov8" title="1">conn.Info("IOTPaas schema inserted into redis")
                 return nil</span>
 
         } else<span class="cov0" title="0"> {
@@ -184,6 +180,8 @@ func ValidateEnvars(logger *simple.Logger) error <span class="cov8" title="1">{
                 "NAME,true",
                 "KAFKA_BROKERS,true",
                 "TOPIC,true",
+                "REDIS_HOST,true",
+                "REDIS_PASSWORD,true",
         }
         for x := range items </span><span class="cov8" title="1">{
                 if err := checkEnvar(items[x], logger); err != nil </span><span class="cov8" title="1">{
