@@ -42,10 +42,7 @@ func postToDB(conn connectors.Clients, msg *kafka.Message) error {
 
 	var data *schema.IOTPaaS
 
-	// check if we have the updated detached json
 	if msg != nil {
-		//payload, _ := url.PathUnescape(string(msg.Value))
-		conn.Trace(fmt.Sprintf("Data from message queue %s", string(msg.Value)))
 
 		errs := json.Unmarshal(msg.Value, &data)
 		if errs != nil {
@@ -53,15 +50,13 @@ func postToDB(conn connectors.Clients, msg *kafka.Message) error {
 			return errs
 		}
 
-		res, err := conn.Set(data.Id, string(msg.Value), -1)
-		conn.Debug(fmt.Sprintf("IOTPaaS from insert into redis %v", res))
+		_, err := conn.Set(data.Id, string(msg.Value), -1)
 		if err != nil {
 			conn.Error(fmt.Sprintf("Could not insert schema into redis %v", err))
 			return err
 		}
 
 		// all good :)
-		conn.Info("IOTPaas schema inserted into redis")
 		return nil
 
 	} else {

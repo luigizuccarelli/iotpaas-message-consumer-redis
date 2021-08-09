@@ -35,3 +35,7 @@ container:
 
 push:
 	$(CONTAINER_ENGINE) push $(AUTH) $(REGISTRY)/$(PROJECT):$(VERSION) 
+
+run: build
+		hack/run-local.sh
+	
